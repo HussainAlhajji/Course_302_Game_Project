@@ -90,6 +90,12 @@ public class EnemyController : MonoBehaviour
             eyePosition.SetParent(transform);
             eyePosition.localPosition = new Vector3(0, 1.6f, 0.2f);
         }
+            Collider enemyCollider = GetComponent<Collider>();
+    Collider playerCollider = playerTransform?.GetComponent<Collider>();
+    if (enemyCollider != null && playerCollider != null)
+    {
+        Physics.IgnoreCollision(enemyCollider, playerCollider);
+    }
     }
 
     private void Start()
@@ -263,13 +269,25 @@ public class EnemyController : MonoBehaviour
         }
     }
 
-    private void PerformAttack()
+private void PerformAttack()
+{
+    animator.SetTrigger(AttackParam);
+    lastAttackTime = Time.time;
+    StartCoroutine(DelayedDamageCheck(1f));
+}
+private IEnumerator DelayedDamageCheck(float delay)
+{
+    yield return new WaitForSeconds(delay);
+
+    if (!playerTransform) yield break;
+
+    float distance = Vector3.Distance(transform.position, playerTransform.position);
+    if (distance <= attackRange * 1.2f)
     {
-        animator.SetTrigger(AttackParam);
-        PlayAttackSound();
-        lastAttackTime = Time.time;
+        PlayAttackSound(); // ✅ Play sound only if hit lands
         DealDamage();
     }
+}
 
     private void DealDamage()
     {
@@ -291,14 +309,8 @@ public class EnemyController : MonoBehaviour
                 }
             }
 
-            // Disable physical interaction between the enemy and the player
-            Collider enemyCollider = GetComponent<Collider>();
-            Collider playerCollider = playerTransform.GetComponent<Collider>();
-            if (enemyCollider && playerCollider)
-            {
-                Physics.IgnoreCollision(enemyCollider, playerCollider, true); // Disable collision
-                StartCoroutine(ReenableCollision(enemyCollider, playerCollider, slowdownDuration)); // Re-enable collision after the slowdown duration
-            }
+            // Ensure no collision disabling logic is present
+            // Removed Physics.IgnoreCollision logic
         }
     }
 

@@ -138,15 +138,55 @@ public class FirstPersonController : MonoBehaviour
     public KeyCode superJumpKey = KeyCode.E; // Key to activate the super jump
     public float superJumpForce = 15f; // Force applied during the super jump
     public float superJumpCooldown = 10f; // Cooldown time in seconds
-public TMPro.TextMeshProUGUI superJumpCooldownText; // NEW
+    public TMPro.TextMeshProUGUI superJumpCooldownText; // UI Text for cooldown
+    // Removed duplicate definition of superJumpSound
 
     private bool canUseSuperJump = true; // Tracks if the super jump is ready
 
     #endregion
 
+    #region Wall Climbing Variables
+
+    public bool enableWallClimbing = true; // Enable or disable wall climbing
+    public LayerMask wallLayer; // Layer mask to detect walls
+    public float wallDetectionDistance = 1f; // Distance for wall detection
+    public KeyCode wallClimbKey = KeyCode.F; // Key to stick to walls
+
+    // Internal Variables
+    private bool isOnWall = false;
+    private bool isWallClimbing = false;
+
+    #endregion
+
+    #region Push Ability Variables
+
+    [Header("Push Ability Settings")]
+    public bool enablePushAbility = true; // Enable/disable the push ability
+    public KeyCode pushAbilityKey = KeyCode.Q; // Activation key
+    public float pushForce = 10f; // Force of the push
+    public float pushRadius = 5f; // Radius to affect enemies
+    public float pushCooldown = 15f; // Cooldown in seconds
+    public TMPro.TextMeshProUGUI pushCooldownText; // UI Text for cooldown
+    public AudioClip pushSound; // Sound for Push Ability
+
+    private bool canUsePush = true;
+
+    #endregion
+
+    #region Audio Variables
+    public AudioClip superJumpSound; // Sound for Super Jump
+    private AudioSource audioSource; // AudioSource component
+    #endregion
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        audioSource = GetComponent<AudioSource>(); // Get or add AudioSource component
+
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
 
         crosshairObject = GetComponentInChildren<Image>();
 
@@ -386,6 +426,33 @@ public TMPro.TextMeshProUGUI superJumpCooldownText; // NEW
 
         #endregion
 
+        #region Wall Climbing
+
+        if (enableWallClimbing)
+        {
+            DetectWall();
+
+            if (isOnWall && Input.GetKeyDown(wallClimbKey))
+            {
+                StickToWall();
+            }
+            else if (isWallClimbing && Input.GetKeyUp(wallClimbKey))
+            {
+                DetachFromWall();
+            }
+        }
+
+        #endregion
+
+        #region Push Ability
+
+        if (enablePushAbility && Input.GetKeyDown(pushAbilityKey) && canUsePush)
+        {
+            StartCoroutine(ExecutePushAbility());
+        }
+
+        #endregion
+
         CheckGround();
 
         if(enableHeadBob)
@@ -562,6 +629,13 @@ public TMPro.TextMeshProUGUI superJumpCooldownText; // NEW
         if (isGrounded) // Ensure the player is grounded before performing the super jump
         {
             rb.AddForce(Vector3.up * superJumpForce, ForceMode.Impulse);
+
+            // Play Super Jump sound
+            if (superJumpSound != null)
+            {
+                audioSource.PlayOneShot(superJumpSound);
+            }
+
             StartCoroutine(SuperJumpCooldownRoutine());
         }
     }
@@ -589,7 +663,110 @@ public TMPro.TextMeshProUGUI superJumpCooldownText; // NEW
 
         canUseSuperJump = true;
     }
+
+    private void DetectWall()
+    {
+        // Cast a ray forward to detect walls
+        Vector3 origin = transform.position;
+        Vector3 direction = transform.forward;
+
+        if (Physics.Raycast(origin, direction, out RaycastHit hit, wallDetectionDistance, wallLayer))
+        {
+            Debug.DrawRay(origin, direction * wallDetectionDistance, Color.green);
+            isOnWall = true;
+        }
+        else
+        {
+            Debug.DrawRay(origin, direction * wallDetectionDistance, Color.red);
+            isOnWall = false;
+        }
+    }
+
+    private void StickToWall()
+    {
+        isWallClimbing = true;
+        rb.isKinematic = true; // Disable physics
+        rb.linearVelocity = Vector3.zero; // Zero out velocity
+    }
+
+    private void DetachFromWall()
+    {
+        isWallClimbing = false;
+        rb.isKinematic = false; // Re-enable physics
+    }
+
+    private void ApplyKnockback(Vector3 force)
+    {
+        if (!isOnWall) // Only apply knockback if not attached to a wall
+        {
+            rb.AddForce(force, ForceMode.Impulse);
+        }
+    }
+
+private IEnumerator ExecutePushAbility()
+{
+    canUsePush = false;
+
+    // Reset player speed to cancel slowdown effect
+    ResetPlayerSpeed();
+
+    // Play Push sound
+    if (pushSound != null)
+    {
+        audioSource.PlayOneShot(pushSound);
+    }
+
+    // Find all colliders in the push radius
+    Collider[] colliders = Physics.OverlapSphere(transform.position, pushRadius);
+
+    int affectedCount = 0;
+
+    foreach (Collider collider in colliders)
+    {
+        EnemyHealth enemy = collider.GetComponentInParent<EnemyHealth>();
+        if (enemy != null)
+        {
+            // Direction from player to enemy — this mimics rifle knockback logic
+            Vector3 directionToEnemy = (enemy.transform.position - transform.position).normalized;
+
+            // Apply knockback using enemy logic
+            enemy.ApplyKnockback(directionToEnemy, pushForce);
+            affectedCount++;
+
+            Debug.DrawLine(transform.position, enemy.transform.position, Color.cyan, 1f);
+        }
+    }
+
+    Debug.Log($"PushAbility affected {affectedCount} enemies.");
+
+    // UI cooldown countdown
+    float cooldownRemaining = pushCooldown;
+    while (cooldownRemaining > 0)
+    {
+        if (pushCooldownText != null)
+        {
+            pushCooldownText.text = Mathf.Ceil(cooldownRemaining).ToString() + "s";
+        }
+
+        cooldownRemaining -= Time.deltaTime;
+        yield return null;
+    }
+
+    if (pushCooldownText != null)
+    {
+        pushCooldownText.text = "Push Ready!";
+    }
+
+    canUsePush = true;
 }
+
+// Helper method to reset player speed
+private void ResetPlayerSpeed()
+{
+    walkSpeed = 5f; // Replace with the original walk speed
+    sprintSpeed = 7f; // Replace with the original sprint speed
+}
+
 
 
 
@@ -811,6 +988,61 @@ fpc.superJumpCooldown = EditorGUILayout.Slider(new GUIContent("Super Jump Cooldo
 fpc.superJumpCooldownText = (TMPro.TextMeshProUGUI)EditorGUILayout.ObjectField(
     new GUIContent("Cooldown UI Text", "TextMeshProUGUI element to show super jump cooldown."),
     fpc.superJumpCooldownText, typeof(TMPro.TextMeshProUGUI), true);
+    fpc.superJumpSound = (AudioClip)EditorGUILayout.ObjectField(
+    new GUIContent("Super Jump Sound", "AudioClip to play when Super Jump is used."),
+    fpc.superJumpSound, typeof(AudioClip), false);
+
+GUI.enabled = true;
+
+#endregion
+#region Push Ability
+
+EditorGUILayout.Space();
+EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+GUILayout.Label("Push Ability", new GUIStyle(GUI.skin.label)
+{
+    alignment = TextAnchor.MiddleCenter,
+    fontStyle = FontStyle.Bold,
+    fontSize = 13
+}, GUILayout.ExpandWidth(true));
+EditorGUILayout.Space();
+
+fpc.enablePushAbility = EditorGUILayout.ToggleLeft(new GUIContent("Enable Push Ability", "Determines if the player can use a radial push ability."), fpc.enablePushAbility);
+
+GUI.enabled = fpc.enablePushAbility;
+fpc.pushAbilityKey = (KeyCode)EditorGUILayout.EnumPopup(new GUIContent("Push Key", "Key used to activate the push ability."), fpc.pushAbilityKey);
+fpc.pushForce = EditorGUILayout.Slider(new GUIContent("Push Force", "Force applied to enemies when pushed."), fpc.pushForce, 1f, 100f);
+fpc.pushRadius = EditorGUILayout.Slider(new GUIContent("Push Radius", "Radius in which enemies will be affected."), fpc.pushRadius, 1f, 20f);
+fpc.pushCooldown = EditorGUILayout.Slider(new GUIContent("Push Cooldown", "Cooldown time before ability can be reused."), fpc.pushCooldown, 1f, 60f);
+fpc.pushCooldownText = (TMPro.TextMeshProUGUI)EditorGUILayout.ObjectField(
+    new GUIContent("Cooldown UI Text", "Text to show remaining cooldown time."),
+    fpc.pushCooldownText, typeof(TMPro.TextMeshProUGUI), true);
+    fpc.pushSound = (AudioClip)EditorGUILayout.ObjectField(
+    new GUIContent("Push Sound", "AudioClip to play when Push Ability is activated."),
+    fpc.pushSound, typeof(AudioClip), false);
+
+GUI.enabled = true;
+
+#endregion
+
+#region Wall Climbing
+
+EditorGUILayout.Space();
+EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+GUILayout.Label("Wall Climbing", new GUIStyle(GUI.skin.label)
+{
+    alignment = TextAnchor.MiddleCenter,
+    fontStyle = FontStyle.Bold,
+    fontSize = 13
+}, GUILayout.ExpandWidth(true));
+EditorGUILayout.Space();
+
+fpc.enableWallClimbing = EditorGUILayout.ToggleLeft(new GUIContent("Enable Wall Climbing", "Determines if the player can stick to and climb walls."), fpc.enableWallClimbing);
+
+GUI.enabled = fpc.enableWallClimbing;
+fpc.wallLayer = EditorGUILayout.LayerField(new GUIContent("Wall Layer", "Layer mask to detect walls."), fpc.wallLayer);
+fpc.wallDetectionDistance = EditorGUILayout.Slider(new GUIContent("Wall Detection Distance", "Distance for wall detection."), fpc.wallDetectionDistance, 0.1f, 10f);
+fpc.wallClimbKey = (KeyCode)EditorGUILayout.EnumPopup(new GUIContent("Wall Climb Key", "Key used to stick to walls."), fpc.wallClimbKey);
 GUI.enabled = true;
 
 #endregion
@@ -825,5 +1057,5 @@ GUI.enabled = true;
     }
 
 }
-
+}
 #endif

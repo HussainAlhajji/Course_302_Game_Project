@@ -1,20 +1,20 @@
 using UnityEngine;
+using System.Collections;
 
 public class EnemyHealth : MonoBehaviour
 {
     public float maxHealth = 100f;
     private float currentHealth;
-    public GameObject damageTextPrefab; // Prefab with DamageText script
-    public Transform textSpawnPoint; 
-
+    public GameObject damageTextPrefab;
+    public Transform textSpawnPoint;
 
     private EnemyController enemyController;
 
-    public AudioClip damageSound; // Sound to play when damaged
-    private AudioSource audioSource; // AudioSource to play the sound
+    public AudioClip damageSound;
+    private AudioSource audioSource;
 
     [Header("Points")]
-    public int pointsOnKill = 10; // Points awarded for killing this enemy
+    public int pointsOnKill = 10;
 
     void Start()
     {
@@ -28,53 +28,73 @@ public class EnemyHealth : MonoBehaviour
         }
     }
 
-   public void TakeDamage(float amount)
-{
-    if (currentHealth <= 0f) return;
-
-    currentHealth -= amount;
-    currentHealth = Mathf.Max(0, currentHealth);
-
-    // Play damage sound
-    if (damageSound != null && audioSource != null)
+    public void TakeDamage(float amount)
     {
-        audioSource.PlayOneShot(damageSound);
-    }
+        if (currentHealth <= 0f) return;
 
-    // Spawn floating damage text
-     if (damageTextPrefab != null)
-    {
-        Vector3 spawnPosition = textSpawnPoint != null
-            ? textSpawnPoint.position
-            : transform.position + Vector3.up * 2f;
+        currentHealth -= amount;
+        currentHealth = Mathf.Max(0, currentHealth);
 
-        GameObject textGO = Instantiate(damageTextPrefab, spawnPosition, Quaternion.identity);
-        DamageText dt = textGO.GetComponent<DamageText>();
-        if (dt != null)
-            dt.SetText(amount.ToString("F0")); // Display the damage amount
-    }
-    if (currentHealth <= 0f)
-    {
-        // Award points
-        PlayerStats playerStats = FindObjectOfType<PlayerStats>();
-        if (playerStats != null)
+        Debug.Log($"Enemy took {amount} damage. Current health: {currentHealth}");
+
+        if (damageSound != null && audioSource != null)
         {
-            playerStats.AddPoints(pointsOnKill);
+            audioSource.PlayOneShot(damageSound);
         }
 
-        if (enemyController != null)
-            enemyController.OnEnemyDeath();
+        if (damageTextPrefab != null)
+        {
+            Vector3 spawnPosition = textSpawnPoint != null
+                ? textSpawnPoint.position
+                : transform.position + Vector3.up * 2f;
+
+            GameObject textGO = Instantiate(damageTextPrefab, spawnPosition, Quaternion.identity);
+            DamageText dt = textGO.GetComponent<DamageText>();
+            if (dt != null)
+            {
+                dt.SetText(amount.ToString("F0"));
+            }
+        }
+
+        if (currentHealth <= 0f)
+        {
+            PlayerStats playerStats = FindObjectOfType<PlayerStats>();
+            if (playerStats != null)
+            {
+                playerStats.AddPoints(pointsOnKill);
+            }
+
+            if (enemyController != null)
+                enemyController.OnEnemyDeath();
+        }
+        else
+        {
+            if (enemyController != null && enemyController.currentState == EnemyState.Patrol)
+                enemyController.currentState = EnemyState.Chase;
+        }
     }
-    else
+
+    // ✅ Called by the rifle if knockback is enabled
+   public void ApplyKnockback(Vector3 direction, float force)
+{
+    StartCoroutine(KnockbackRoutine(direction, force));
+}
+
+private IEnumerator KnockbackRoutine(Vector3 direction, float force)
+{
+    float duration = 0.1f; // Adjust for smoother knockback
+    float elapsed = 0f;
+    Vector3 startPos = transform.position;
+    Vector3 targetPos = startPos + direction.normalized * force;
+
+    while (elapsed < duration)
     {
-        // Change enemy state if needed
-        if (enemyController != null && enemyController.currentState == EnemyState.Patrol)
-            enemyController.currentState = EnemyState.Chase;
+        transform.position = Vector3.Lerp(startPos, targetPos, elapsed / duration);
+        elapsed += Time.deltaTime;
+        yield return null;
     }
-    Debug.Log("Enemy took damage: " + amount);
-Debug.Log("Spawn point: " + (textSpawnPoint != null ? textSpawnPoint.name : "none"));
-Debug.Log("Instantiating damageTextPrefab...");
-Debug.Log("Damage text prefab: " + damageTextPrefab.name);
+
+    transform.position = targetPos;
 }
 
 }

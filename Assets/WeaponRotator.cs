@@ -21,6 +21,11 @@ public class WeaponRotator : MonoBehaviour
     public float speedMultiplier = 1.5f; // Speed multiplier during ultimate
     public float ultimateDuration = 30f; // Duration of the ultimate
 
+    [Header("Audio Settings")]
+    public AudioClip timerTickSound; // Sound for each second of the timer
+    public AudioClip weaponSwapSound; // Sound for weapon swap
+    private AudioSource audioSource;
+
     private Transform currentWeapon;
     private bool usingUltimate = false;
     private Coroutine switchRoutine;
@@ -35,6 +40,13 @@ public class WeaponRotator : MonoBehaviour
         // Get references to PlayerHealth and FirstPersonController
         playerHealth = FindObjectOfType<PlayerHealth>();
         playerController = FindObjectOfType<FirstPersonController>();
+
+        // Initialize AudioSource
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
     }
 
     void Update()
@@ -60,8 +72,14 @@ public class WeaponRotator : MonoBehaviour
                     timerText.text = $"{Mathf.Ceil(switchCountdown)}";
                 }
 
-                switchCountdown -= Time.deltaTime;
-                yield return null;
+                // Play timer tick sound
+                if (timerTickSound != null && audioSource != null)
+                {
+                    audioSource.PlayOneShot(timerTickSound);
+                }
+
+                switchCountdown -= 1f;
+                yield return new WaitForSeconds(1f);
             }
 
             if (usingUltimate)
@@ -157,6 +175,12 @@ public class WeaponRotator : MonoBehaviour
         currentWeapon = weaponObjects[newIndex];
         currentWeapon.gameObject.SetActive(true);
 
+        // Play weapon swap sound
+        if (weaponSwapSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(weaponSwapSound);
+        }
+
         Debug.Log("[WeaponRotator] Switched to: " + currentWeapon.name);
     }
 
@@ -176,6 +200,12 @@ public class WeaponRotator : MonoBehaviour
 
         currentWeapon = ultimateWeapons[newIndex];
         currentWeapon.gameObject.SetActive(true);
+
+        // Play weapon swap sound
+        if (weaponSwapSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(weaponSwapSound);
+        }
 
         Debug.Log("[WeaponRotator] Switched Ultimate to: " + currentWeapon.name);
     }

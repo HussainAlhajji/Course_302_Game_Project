@@ -13,8 +13,12 @@ public class AssaultRifle : MonoBehaviour
     public float range = 100f;
 
     [Header("Damage Settings")]
-    public float baseDamage = 25f;   // Max damage at close range
-    public float minDamage = 10f;    // Min damage at max range
+    public float baseDamage = 25f;
+    public float minDamage = 10f;
+
+    [Header("Special Ability")]
+    public bool enableKnockback = true; // ✅ Toggle knockback per weapon
+    public float knockbackForce = 5f;
 
     [Header("Sound & Effects")]
     public AudioClip fireSound;
@@ -49,19 +53,19 @@ public class AssaultRifle : MonoBehaviour
 
     void Update()
     {
-        // Toggle aim with M
+        // Toggle aim
         if (Input.GetKeyDown(KeyCode.M))
         {
             isAiming = !isAiming;
         }
 
-        // Smooth aim transition
+        // Aim movement
         if (gunModel != null)
         {
             gunModel.localPosition = Vector3.Lerp(gunModel.localPosition, hipPosition + currentRecoilOffset, Time.deltaTime * aimSpeed);
         }
 
-        // Smooth FOV zoom
+        // FOV zoom
         if (playerCamera != null)
         {
             float targetFOV = isAiming ? aimFOV : defaultFOV;
@@ -109,11 +113,17 @@ public class AssaultRifle : MonoBehaviour
             float t = Mathf.InverseLerp(0f, range, distance);
             float damage = Mathf.Lerp(baseDamage, minDamage, t);
 
-            // 🧠 Deal damage to enemy (ensure it works with child objects)
+            // 🧠 Deal damage to enemy and apply knockback if enabled
             EnemyHealth enemy = hit.collider.GetComponentInParent<EnemyHealth>();
             if (enemy != null)
             {
                 enemy.TakeDamage(damage);
+
+                if (enableKnockback)
+                {
+                    Vector3 knockbackDir = hit.point - firePoint.position;
+                    enemy.ApplyKnockback(knockbackDir, knockbackForce);
+                }
             }
             else
             {
