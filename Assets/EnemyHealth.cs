@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.AI; // Required for NavMesh
 
 public class EnemyHealth : MonoBehaviour
 {
@@ -97,4 +98,24 @@ private IEnumerator KnockbackRoutine(Vector3 direction, float force)
     transform.position = targetPos;
 }
 
+    public void ApplyNavMeshKnockback(Vector3 direction, float force)
+    {
+        NavMeshAgent agent = GetComponent<NavMeshAgent>();
+        if (agent == null)
+        {
+            Debug.LogWarning("No NavMeshAgent found on enemy. Cannot apply NavMesh knockback.");
+            return;
+        }
+
+        Vector3 knockbackTarget = transform.position + direction.normalized * force;
+
+        if (NavMesh.SamplePosition(knockbackTarget, out NavMeshHit hit, force, NavMesh.AllAreas))
+        {
+            agent.Warp(hit.position); // Move the enemy to the valid NavMesh position
+        }
+        else
+        {
+            Debug.LogWarning("Knockback target is outside of NavMesh bounds.");
+        }
+    }
 }

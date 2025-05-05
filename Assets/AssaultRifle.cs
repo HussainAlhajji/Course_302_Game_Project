@@ -122,7 +122,7 @@ public class AssaultRifle : MonoBehaviour
                 if (enableKnockback)
                 {
                     Vector3 knockbackDir = hit.point - firePoint.position;
-                    enemy.ApplyKnockback(knockbackDir, knockbackForce);
+                    enemy.ApplyNavMeshKnockback(knockbackDir, knockbackForce); // Use the new method
                 }
             }
             else

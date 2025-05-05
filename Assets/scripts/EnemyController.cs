@@ -327,7 +327,8 @@ private IEnumerator DelayedDamageCheck(float delay)
         playerController.walkSpeed = newWalkSpeed;
         playerController.sprintSpeed = newSprintSpeed;
 
-        yield return new WaitForSeconds(slowdownDuration);
+        // Ensure the slowdown effect lasts exactly 1 second
+        yield return new WaitForSeconds(1f);
 
         // Restore the player's original speed
         playerController.walkSpeed = originalWalkSpeed;
