@@ -12,6 +12,10 @@ public class WaveSpawner : MonoBehaviour
     }
 
     public Wave[] waves;
+    [Header("Enemy Scaling")]
+public float healthIncreasePerWave = 20f;
+public float speedMultiplierPerWave = 1.1f; // 10% faster per wave
+
     public Transform[] spawnPoints;
     public GameObject zombiePrefab;
     public Transform zombieContainer;
@@ -24,7 +28,7 @@ public class WaveSpawner : MonoBehaviour
 
     void Start()
     {
-        Debug.Log("[WaveSpawner] Initialized. Waves: " + waves.Length);
+       // Debug.Log("[WaveSpawner] Initialized. Waves: " + waves.Length);
 
         // Find the wave and enemy count text objects
         GameObject waveObject = GameObject.Find("Canvas/HUD/ScreenSpace/TopLeft/HUD_EventLog/HUD_EventLog_Item/Label_Event");
@@ -46,7 +50,7 @@ public class WaveSpawner : MonoBehaviour
     void Update()
     {
         int enemyCount = GameObject.FindGameObjectsWithTag("Enemy").Length;
-        Debug.Log("[WaveSpawner] Enemy count: " + enemyCount + " | Current Wave: " + (currentWave + 1) + " | IsSpawning: " + isSpawning);
+        //Debug.Log("[WaveSpawner] Enemy count: " + enemyCount + " | Current Wave: " + (currentWave + 1) + " | IsSpawning: " + isSpawning);
 
         UpdateEnemyCountText();
 
@@ -54,14 +58,14 @@ public class WaveSpawner : MonoBehaviour
         {
             if (currentWave < waves.Length)
             {
-                Debug.Log("[WaveSpawner] Starting Wave " + (currentWave + 1));
+                ////Debug.Log("[WaveSpawner] Starting Wave " + (currentWave + 1));
                 StartCoroutine(SpawnWave(waves[currentWave]));
                 UpdateWaveText(); // Update wave text before incrementing
                 currentWave++;
             }
             else
             {
-                Debug.Log("[WaveSpawner] All waves completed!");
+                //Debug.Log("[WaveSpawner] All waves completed!");
             }
         }
     }
@@ -69,7 +73,7 @@ public class WaveSpawner : MonoBehaviour
     IEnumerator SpawnWave(Wave wave)
     {
         isSpawning = true;
-        Debug.Log("[WaveSpawner] Spawning " + wave.zombieCount + " zombies at " + wave.spawnRate + " per second");
+        //Debug.Log("[WaveSpawner] Spawning " + wave.zombieCount + " zombies at " + wave.spawnRate + " per second");
 
         for (int i = 0; i < wave.zombieCount; i++)
         {
@@ -78,32 +82,42 @@ public class WaveSpawner : MonoBehaviour
         }
 
         isSpawning = false;
-        Debug.Log("[WaveSpawner] Finished spawning wave " + currentWave);
+       // Debug.Log("[WaveSpawner] Finished spawning wave " + currentWave);
     }
 
     void SpawnZombie(int index)
+{
+    if (zombiePrefab == null)
     {
-        if (zombiePrefab == null)
-        {
-            Debug.LogError("[WaveSpawner] Missing zombie prefab!");
-            return;
-        }
-
-        if (spawnPoints.Length == 0)
-        {
-            Debug.LogError("[WaveSpawner] No spawn points assigned!");
-            return;
-        }
-
-        Transform spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
-        GameObject zombie = Instantiate(zombiePrefab, spawnPoint.position, spawnPoint.rotation);
-        Debug.Log("[WaveSpawner] Spawned Zombie " + index + " at " + spawnPoint.name);
-
-        if (zombieContainer != null)
-        {
-            zombie.transform.parent = zombieContainer;
-        }
+        ////Debug.LogError("[WaveSpawner] Missing zombie prefab!");
+        return;
     }
+
+    if (spawnPoints.Length == 0)
+    {
+        //Debug.LogError("[WaveSpawner] No spawn points assigned!");
+        return;
+    }
+
+    Transform spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
+    GameObject zombie = Instantiate(zombiePrefab, spawnPoint.position, spawnPoint.rotation);
+    //Debug.Log("[WaveSpawner] Spawned Zombie " + index + " at " + spawnPoint.name);
+
+    if (zombieContainer != null)
+    {
+        zombie.transform.parent = zombieContainer;
+    }
+
+    // 👇 SCALE STATS BASED ON CURRENT WAVE
+    EnemyController controller = zombie.GetComponent<EnemyController>();
+    if (controller != null)
+    {
+        controller.health += currentWave * healthIncreasePerWave;
+        controller.patrolSpeed *= Mathf.Pow(speedMultiplierPerWave, currentWave);
+        controller.chaseSpeed *= Mathf.Pow(speedMultiplierPerWave, currentWave);
+    }
+}
+
 
     void UpdateWaveText()
     {
