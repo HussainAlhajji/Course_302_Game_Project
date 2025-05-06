@@ -616,7 +616,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 1574, y: 358}
+  m_AnchoredPosition: {x: 2391, y: 358}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &58875061
@@ -3189,7 +3189,7 @@ MonoBehaviour:
   baseDamage: 75
   minDamage: 10
   enableKnockback: 1
-  knockbackForce: 5
+  knockbackForce: 2
   fireSound: {fileID: 8300000, guid: 146c8cdd9b7b0c74ab2599309252208e, type: 3}
   muzzleFlashSprite: {fileID: 1488106376}
   gunModel: {fileID: 282134998}
@@ -13161,7 +13161,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 1635, y: 444}
+  m_AnchoredPosition: {x: 2364, y: 444}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &881150320
@@ -14960,7 +14960,7 @@ MonoBehaviour:
   currentHealth: 0
   damageSound: {fileID: 8300000, guid: 19d0c0761584b5b4b8411e33a4e892c5, type: 3}
   deathSound: {fileID: 8300000, guid: 3b5ac37408cc4f94484e71f347912ea6, type: 3}
-  regenDelay: 5
+  regenDelay: 3
   regenRate: 5
 --- !u!114 &1016776665
 MonoBehaviour:
@@ -14975,7 +14975,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   points: 0
-  pointsForUltimate: 200
+  pointsForUltimate: 500
   pointsText: {fileID: 1001067764}
   ultimateReadyText: {fileID: 1404928075}
   pointsGainedText: {fileID: 0}
