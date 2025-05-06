@@ -13,6 +13,7 @@ public class EnemyHealth : MonoBehaviour
 
     public AudioClip damageSound;
     private AudioSource audioSource;
+    
 
     [Header("Points")]
     public int pointsOnKill = 10;
@@ -29,74 +30,95 @@ public class EnemyHealth : MonoBehaviour
         }
     }
 
-    public void TakeDamage(float amount)
+    private float accumulatedDamage = 0f;
+private float damageAccumulationTime = 0.1f;
+private bool isAccumulating = false;
+
+public void TakeDamage(float amount)
+{
+    if (currentHealth <= 0f) return;
+
+    accumulatedDamage += amount;
+    currentHealth -= amount;
+    currentHealth = Mathf.Max(0, currentHealth);
+
+    Debug.Log($"Enemy took {amount} damage. Current health: {currentHealth}");
+
+    if (damageSound != null && audioSource != null)
     {
-        if (currentHealth <= 0f) return;
+        audioSource.PlayOneShot(damageSound);
+    }
 
-        currentHealth -= amount;
-        currentHealth = Mathf.Max(0, currentHealth);
+    if (!isAccumulating)
+    {
+        StartCoroutine(ShowAccumulatedDamage());
+    }
 
-        Debug.Log($"Enemy took {amount} damage. Current health: {currentHealth}");
-
-        if (damageSound != null && audioSource != null)
+    // Handle enemy death and state changes
+    if (currentHealth <= 0f)
+    {
+        PlayerStats playerStats = FindObjectOfType<PlayerStats>();
+        if (playerStats != null)
         {
-            audioSource.PlayOneShot(damageSound);
+            playerStats.AddPoints(pointsOnKill);
         }
 
-        if (damageTextPrefab != null)
-        {
-            Vector3 spawnPosition = textSpawnPoint != null
-                ? textSpawnPoint.position
-                : transform.position + Vector3.up * 2f;
+        if (enemyController != null)
+            enemyController.OnEnemyDeath();
+    }
+    else if (enemyController != null && enemyController.currentState == EnemyState.Patrol)
+    {
+        enemyController.currentState = EnemyState.Chase;
+    }
+}
 
-            GameObject textGO = Instantiate(damageTextPrefab, spawnPosition, Quaternion.identity);
-            DamageText dt = textGO.GetComponent<DamageText>();
-            if (dt != null)
-            {
-                dt.SetText(amount.ToString("F0"));
-            }
-        }
+private IEnumerator ShowAccumulatedDamage()
+{
+    isAccumulating = true;
+    yield return new WaitForSeconds(damageAccumulationTime);
 
-        if (currentHealth <= 0f)
-        {
-            PlayerStats playerStats = FindObjectOfType<PlayerStats>();
-            if (playerStats != null)
-            {
-                playerStats.AddPoints(pointsOnKill);
-            }
+    if (damageTextPrefab != null)
+    {
+        Vector3 spawnPosition = textSpawnPoint != null
+            ? textSpawnPoint.position
+            : transform.position + Vector3.up * 2f;
 
-            if (enemyController != null)
-                enemyController.OnEnemyDeath();
-        }
-        else
+        GameObject textGO = Instantiate(damageTextPrefab, spawnPosition, Quaternion.identity);
+        D damageText = textGO.GetComponent<D>();
+
+        if (damageText != null)
         {
-            if (enemyController != null && enemyController.currentState == EnemyState.Patrol)
-                enemyController.currentState = EnemyState.Chase;
+            string damageString = Mathf.RoundToInt(accumulatedDamage).ToString();
+            damageText.SetText(damageString);
+            Debug.Log($"Showing accumulated damage: {damageString}");
         }
     }
 
-    // ✅ Called by the rifle if knockback is enabled
-   public void ApplyKnockback(Vector3 direction, float force)
-{
-    StartCoroutine(KnockbackRoutine(direction, force));
+    accumulatedDamage = 0f;
+    isAccumulating = false;
 }
-
-private IEnumerator KnockbackRoutine(Vector3 direction, float force)
-{
-    float duration = 0.1f; // Adjust for smoother knockback
-    float elapsed = 0f;
-    Vector3 startPos = transform.position;
-    Vector3 targetPos = startPos + direction.normalized * force;
-
-    while (elapsed < duration)
+    // Called by the rifle if knockback is enabled
+    public void ApplyKnockback(Vector3 direction, float force)
     {
-        transform.position = Vector3.Lerp(startPos, targetPos, elapsed / duration);
-        elapsed += Time.deltaTime;
-        yield return null;
+        StartCoroutine(KnockbackRoutine(direction, force));
     }
 
-    transform.position = targetPos;
-}
+    private IEnumerator KnockbackRoutine(Vector3 direction, float force)
+    {
+        float duration = 0.1f; // Adjust for smoother knockback
+        float elapsed = 0f;
+        Vector3 startPos = transform.position;
+        Vector3 targetPos = startPos + direction.normalized * force;
+
+        while (elapsed < duration)
+        {
+            transform.position = Vector3.Lerp(startPos, targetPos, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        transform.position = targetPos;
+    }
 
     public void ApplyNavMeshKnockback(Vector3 direction, float force)
     {

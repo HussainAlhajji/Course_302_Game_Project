@@ -4942,11 +4942,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1fdf375e90cd68e43b2f8c5cca7833af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 50
-  damageTextPrefab: {fileID: 8560925026947614117, guid: cb55bc33f4b01694aade5cc5ccaa9877, type: 3}
+  maxHealth: 100
+  damageTextPrefab: {fileID: 5519087035932498605, guid: 4cff2e5aa778d864e904eb6b98acbf6a, type: 3}
   textSpawnPoint: {fileID: 5832778716848643069}
   damageSound: {fileID: 8300000, guid: 9302030d2c8ac85449e987a5ead8fd72, type: 3}
-  pointsOnKill: 50
+  pointsOnKill: 100
 --- !u!1 &7515311840217497867
 GameObject:
   m_ObjectHideFlags: 0
